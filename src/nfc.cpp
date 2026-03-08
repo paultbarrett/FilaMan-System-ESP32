@@ -45,6 +45,7 @@ bool detectBambuTag(const uint8_t* uid, uint8_t uidLength) {
     // Create UID string with separators (same format as NTAG)
     String uidString = "";
     for (uint8_t i = 0; i < uidLength; i++) {
+        if (uid[i] < 0x10) uidString += "0";
         uidString += String(uid[i], HEX);
         if (i < uidLength - 1) {
             uidString += ":";
@@ -1639,6 +1640,7 @@ void writeJsonToTag(void *parameter) {
     
     if (success) {
       for (uint8_t i = 0; i < uidLength; i++) {
+        if (uid[i] < 0x10) uidString += "0";
         uidString += String(uid[i], HEX);
         if (i < uidLength - 1) {
             uidString += ":"; // Trennzeichen hinzufügen
@@ -1980,6 +1982,7 @@ void scanRfidTask(void * parameter) {
         String uidString = "";
         for (uint8_t i = 0; i < uidLength; i++) {
           //TBD: Rework to remove all the string operations
+          if (uid[i] < 0x10) uidString += "0";
           uidString += String(uid[i], HEX);
           if (i < uidLength - 1) {
               uidString += ":"; // Optional: Trennzeichen hinzufügen

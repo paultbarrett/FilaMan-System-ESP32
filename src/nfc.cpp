@@ -1328,6 +1328,18 @@ bool decodeNdefAndReturnJson(const byte* encodedMessage, String uidString) {
         int locId = doc["location_id"].as<int>();
         int sId = lastSpoolId.toInt();
         sendLocationAsync(sId, "", locId, "");
+        
+        // Display feedback - location was set
+        oledShowProgressBar(1, 1, "Location", "Standort gesetzt");
+        oledSetPriority(DISPLAY_PRIORITY_ACTION, 3000);
+        
+        // Clear lastSpoolId to prevent accidental re-assignment
+        lastSpoolId = "";
+        
+        // Mark as processed so main.cpp doesn't try to send weight
+        tagProcessed = true;
+        activeSpoolId = "";
+        Serial.println("Location set - lastSpoolId cleared to prevent re-assignment");
       }
       else 
       {

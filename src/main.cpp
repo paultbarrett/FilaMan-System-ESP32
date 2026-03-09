@@ -100,40 +100,22 @@ const unsigned long debounceDelay = 500; // 500 ms debounce delay
 
 unsigned long lastConnErrorShowTime = 0;
 const unsigned long connErrorShowInterval = 10000; // Show connection error every 10 seconds if exists
-bool showingConnError = false;
-unsigned long connErrorStartTime = 0;
-const unsigned long connErrorDisplayDuration = 3000;
 
 // ##### PROGRAM START #####
 void loop() {
   unsigned long currentMillis = millis();
 
   // Handle connection errors (not registered or not connected)
-  if (!showingConnError && intervalElapsed(currentMillis, lastConnErrorShowTime, connErrorShowInterval)) {
-      if (!filamanRegistered) {
+  if (intervalElapsed(currentMillis, lastConnErrorShowTime, connErrorShowInterval)) {
+      if (!filamanRegistered && oledCanUpdate(DISPLAY_PRIORITY_WARNING)) {
           oledShowConnectionError("Not Registered", WiFi.localIP().toString());
-          showingConnError = true;
-          connErrorStartTime = currentMillis;
+          oledSetPriority(DISPLAY_PRIORITY_WARNING, 3000);
           mainTaskWasPaused = true;
-      } else if (!filamanConnected) {
+      } else if (!filamanConnected && oledCanUpdate(DISPLAY_PRIORITY_WARNING)) {
           oledShowConnectionError("API Connection Lost", WiFi.localIP().toString());
-          showingConnError = true;
-          connErrorStartTime = currentMillis;
+          oledSetPriority(DISPLAY_PRIORITY_WARNING, 3000);
           mainTaskWasPaused = true;
       }
-  }
-
-  // Clear connection error after duration
-  if (showingConnError && currentMillis - connErrorStartTime >= connErrorDisplayDuration) {
-      showingConnError = false;
-      // Force UI refresh next cycle
-      lastTopRowUpdateTime = 0;
-  }
-
-  // Skip the rest of the loop while showing error to avoid UI overwriting
-  if (showingConnError) {
-      esp_task_wdt_reset();
-      return;
   }
 
   // Überprüfe den Status des Touch Sensors
@@ -175,14 +157,15 @@ void loop() {
   else 
   {
     // Ausgabe der Waage auf Display
-    // Block weight display during NFC write operations
-    if(pauseMainTask == 0 && !nfcWriteInProgress)
+    // Block weight display during NFC write operations and higher-priority display messages
+    if(pauseMainTask == 0 && !nfcWriteInProgress && oledCanUpdate(DISPLAY_PRIORITY_STATUS))
     {
       // Use filtered weight for smooth display, but still check API weight for significant changes
       int16_t displayWeight = getFilteredDisplayWeight();
       if (mainTaskWasPaused || (weight != lastWeight && (nfcReaderState == NFC_IDLE || tagProcessed)))
       {
         (displayWeight < 2) ? ((displayWeight < -2) ? oledDisplayText("!! -0") : oledShowWeight(0)) : oledShowWeight(displayWeight);
+        oledSetPriority(DISPLAY_PRIORITY_STATUS, 0);  // Weight can always be overwritten
       }
       mainTaskWasPaused = false;
     }
@@ -201,18 +184,27 @@ void loop() {
       if (abs(weight - lastWeight) <= 2 && weight > 5)
       {
         weightCounterToApi++;
+        // Show stable weight feedback when approaching send threshold
+        if (weightCounterToApi == 3 && nfcReaderState == NFC_READ_SUCCESS && !tagProcessed && weightSend == 0) {
+          oledShowProgressBar(2, 4, "Spool Tag", "Weight stable");
+          oledSetPriority(DISPLAY_PRIORITY_INFO, 1000);
+        }
       } 
       else 
       {
+        // Show visual feedback when tag is present and weight is unstable
+        if (weightCounterToApi > 0 && nfcReaderState == NFC_READ_SUCCESS && !tagProcessed && weightSend == 0) {
+          oledShowProgressBar(1, 4, "Spool Tag", "Weighing...");
+          oledSetPriority(DISPLAY_PRIORITY_INFO, 1000);
+        }
         weightCounterToApi = 0;
         weightSend = 0;
       }
-    }
 
     lastWeight = weight;
 
-    // Wenn ein Tag erkannt wurde und das Gewicht stabil ist, an FilaMan senden
-    if (weightCounterToApi > 1 && weightSend == 0 && nfcReaderState == NFC_READ_SUCCESS && tagProcessed == false) 
+    // Wenn ein Tag erkannt wurde und das Gewicht stabil ist (4+ seconds), an FilaMan senden
+    if (weightCounterToApi > 3 && weightSend == 0 && nfcReaderState == NFC_READ_SUCCESS && tagProcessed == false) 
     {
       tagProcessed = true;
       
@@ -229,8 +221,8 @@ void loop() {
       weightSend = 1;
       
       // Feedback to user
-      pauseMainTask = 1;
       oledShowProgressBar(3, 4, "Spool Tag", "Sending...");
+      oledSetPriority(DISPLAY_PRIORITY_ACTION, 2000);
     }
 
     // Handle successful tag write
@@ -246,14 +238,14 @@ void loop() {
         Serial.println("Weight queued for FilaMan after spool tag write");
         
         // Feedback to user
-        pauseMainTask = 1;
         oledShowProgressBar(3, 4, "Tag written", "Sending...");
+        oledSetPriority(DISPLAY_PRIORITY_ACTION, 2000);
       } else {
         // Location tag written - no weight to send
         Serial.println("Location tag written successfully - no weight send needed");
       }
     }
   }
-  
+  }
   esp_task_wdt_reset();
 }

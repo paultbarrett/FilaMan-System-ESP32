@@ -499,7 +499,9 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
     Serial.println();
     
     oledDisplayText("Tag zu klein für Payload");
-        vTaskDelay(pdMS_TO_TICKS(3000)); 
+    oledSetPriority(DISPLAY_PRIORITY_WARNING, 3000);
+    vTaskDelay(pdMS_TO_TICKS(3000));
+    oledClearPriority();
 
     return 0;
   }
@@ -541,7 +543,9 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
     } else {
       Serial.println("❌ PN532 Kommunikation fehlgeschlagen");
       oledDisplayText("NFC Reset failed");
-          vTaskDelay(pdMS_TO_TICKS(3000)); 
+      oledSetPriority(DISPLAY_PRIORITY_WARNING, 3000);
+      vTaskDelay(pdMS_TO_TICKS(3000));
+      oledClearPriority();
 
       return 0;
     }
@@ -575,7 +579,9 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
     if (!tagRedetected) {
       Serial.println("❌ Tag konnte nach Reset nicht wiedererkannt werden");
       oledDisplayText("Tag lost after reset");
-          vTaskDelay(pdMS_TO_TICKS(3000)); 
+      oledSetPriority(DISPLAY_PRIORITY_WARNING, 3000);
+      vTaskDelay(pdMS_TO_TICKS(3000));
+      oledClearPriority();
 
       return 0;
     }
@@ -593,7 +599,9 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
     if (!ccReadable) {
       Serial.println("❌ NFC-Interface funktioniert nach Reset immer noch nicht");
       oledDisplayText("NFC still broken");
-          vTaskDelay(pdMS_TO_TICKS(3000)); 
+      oledSetPriority(DISPLAY_PRIORITY_WARNING, 3000);
+      vTaskDelay(pdMS_TO_TICKS(3000));
+      oledClearPriority();
 
       return 0;
     }
@@ -646,7 +654,9 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
     Serial.println("❌ KRITISCHER FEHLER: Grundlegende NDEF-Seiten nicht lesbar!");
     Serial.println("Tag oder Interface ist defekt");
     oledDisplayText("Tag/Interface defect");
-        vTaskDelay(pdMS_TO_TICKS(3000)); 
+    oledSetPriority(DISPLAY_PRIORITY_WARNING, 3000);
+    vTaskDelay(pdMS_TO_TICKS(3000));
+    oledClearPriority();
 
     return 0;
   }
@@ -667,7 +677,9 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
   if (!nfc.ntag2xx_ReadPage(10, originalPage)) {
     Serial.println("FEHLER: Kann Testseite nicht lesen für Backup");
     oledDisplayText("Test page read error");
-        vTaskDelay(pdMS_TO_TICKS(3000)); 
+    oledSetPriority(DISPLAY_PRIORITY_WARNING, 3000);
+    vTaskDelay(pdMS_TO_TICKS(3000));
+    oledClearPriority();
 
     return 0;
   }
@@ -698,14 +710,17 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
     if (!tagStillPresent) {
       Serial.println("URSACHE: Tag wurde während Schreibtest entfernt!");
       oledDisplayText("Tag removed");
+      oledSetPriority(DISPLAY_PRIORITY_WARNING, 3000);
     } else {
       Serial.println("URSACHE: Tag ist vorhanden aber nicht beschreibbar");
       Serial.println("Möglicherweise: Schreibschutz, Defekt, oder Interface-Problem");
       oledDisplayText("Tag write protected?");
+      oledSetPriority(DISPLAY_PRIORITY_WARNING, 3000);
     }
     Serial.println("==========================================");
     
-        vTaskDelay(pdMS_TO_TICKS(3000)); 
+    vTaskDelay(pdMS_TO_TICKS(3000));
+    oledClearPriority();
 
     return 0;
   }
@@ -717,7 +732,9 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
   if (!nfc.ntag2xx_ReadPage(10, readBack)) {
     Serial.println("FEHLER: Kann Testdaten nicht zurücklesen!");
     oledDisplayText("Test verify failed");
-        vTaskDelay(pdMS_TO_TICKS(3000)); 
+    oledSetPriority(DISPLAY_PRIORITY_WARNING, 3000);
+    vTaskDelay(pdMS_TO_TICKS(3000));
+    oledClearPriority();
 
     return 0;
   }
@@ -762,7 +779,9 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
   if (!initializeNdefStructure()) {
     Serial.println("FEHLER: Konnte NDEF-Struktur nicht initialisieren!");
     oledDisplayText("NDEF init failed");
+    oledSetPriority(DISPLAY_PRIORITY_WARNING, 2000);
     vTaskDelay(pdMS_TO_TICKS(2000));
+    oledClearPriority();
     return 0;
   }
   
@@ -818,7 +837,9 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
   if (!interfaceStable) {
     Serial.println("FEHLER: NFC-Interface ist nicht stabil genug für Schreibvorgang");
     oledDisplayText("NFC Interface unstable");
-        vTaskDelay(pdMS_TO_TICKS(3000)); 
+    oledSetPriority(DISPLAY_PRIORITY_WARNING, 3000);
+    vTaskDelay(pdMS_TO_TICKS(3000));
+    oledClearPriority();
 
     return 0;
   }
@@ -831,7 +852,9 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
   if (tlvData == NULL) {
     Serial.println("Fehler: Nicht genug Speicher für TLV-Daten vorhanden.");
     oledDisplayText("Memory error");
+    oledSetPriority(DISPLAY_PRIORITY_WARNING, 2000);
     vTaskDelay(pdMS_TO_TICKS(2000));
+    oledClearPriority();
     return 0;
   }
 
@@ -1100,6 +1123,7 @@ uint8_t ntag2xx_WriteNDEF(const char *payload) {
 
 bool decodeNdefAndReturnJson(const byte* encodedMessage, String uidString) {
   oledShowProgressBar(1, 4, "Reading", "Decoding data");
+  oledSetPriority(DISPLAY_PRIORITY_ACTION, 1500);
 
   // Debug: Print first 32 bytes of the raw data
   Serial.println("Raw NDEF data (first 32 bytes):");
@@ -1293,6 +1317,7 @@ bool decodeNdefAndReturnJson(const byte* encodedMessage, String uidString) {
       if (doc["sm_id"].is<String>() && doc["sm_id"] != "" && doc["sm_id"] != "0")
       {
         oledShowProgressBar(2, 4, "Spool Tag", "Weighing");
+        oledSetPriority(DISPLAY_PRIORITY_ACTION, 2000);
         activeSpoolId = doc["sm_id"].as<String>();
         lastSpoolId = activeSpoolId;
       }
@@ -1303,15 +1328,29 @@ bool decodeNdefAndReturnJson(const byte* encodedMessage, String uidString) {
         int locId = doc["location_id"].as<int>();
         int sId = lastSpoolId.toInt();
         sendLocationAsync(sId, "", locId, "");
+        
+        // Display feedback - location was set
+        oledShowProgressBar(1, 1, "Location", "Standort gesetzt");
+        oledSetPriority(DISPLAY_PRIORITY_ACTION, 3000);
+        
+        // Clear lastSpoolId to prevent accidental re-assignment
+        lastSpoolId = "";
+        
+        // Mark as processed so main.cpp doesn't try to send weight
+        tagProcessed = true;
+        activeSpoolId = "";
+        Serial.println("Location set - lastSpoolId cleared to prevent re-assignment");
       }
       else 
       {
         Serial.println("Unbekannter Tag-Inhalt.");
         activeSpoolId = "";
         oledShowProgressBar(1, 1, "Failure", "Unknown tag");
+        oledSetPriority(DISPLAY_PRIORITY_WARNING, 2000);
       }
     } else {
       oledShowProgressBar(4, 4, "Failure!", "API offline");
+      oledSetPriority(DISPLAY_PRIORITY_WARNING, 2000);
     }
   }
 
@@ -1521,6 +1560,7 @@ bool quickSpoolIdCheck(String uidString) {
                     }
                     
                     oledShowProgressBar(2, 4, "Known Spool", "Quick mode");
+                    oledSetPriority(DISPLAY_PRIORITY_ACTION, 1500);
                     Serial.println("✓ FAST-PATH SUCCESS: Known spool processed quickly");
                     return true;
                 } else {
@@ -1576,6 +1616,7 @@ bool quickSpoolIdCheck(String uidString) {
                 }
                 
                 oledShowProgressBar(2, 4, "Known Spool", "Quick mode");
+                oledSetPriority(DISPLAY_PRIORITY_ACTION, 1500);
                 Serial.println("✓ FAST-PATH SUCCESS: Known spool processed quickly");
                 return true;
             } else {
@@ -1621,20 +1662,33 @@ void writeJsonToTag(void *parameter) {
   sendNfcData();
   vTaskDelay(pdMS_TO_TICKS(100));
   
-  // Show waiting message for tag detection
-  oledShowProgressBar(0, 1, "Write Tag", "Warte auf Tag");
+  // Show initial waiting message with countdown
+  oledShowProgressBar(0, 30, "Write Tag", "Warte... 30s");
+  oledSetPriority(DISPLAY_PRIORITY_ACTION, 1500);
   
   // Wait up to 30 seconds for tag
   uint8_t success = 0;
   String uidString = "";
   uint8_t uidLength = 0;
   unsigned long startTime = millis();
+  uint8_t lastSecondsShown = 30;
   
   while (millis() - startTime < 30000) {
     uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
     // yield before potentially waiting for 400ms
     yield();
     esp_task_wdt_reset();
+    
+    // Update countdown display every second
+    unsigned long elapsed = millis() - startTime;
+    uint8_t remainingSeconds = (30000 - elapsed) / 1000;
+    if (remainingSeconds != lastSecondsShown) {
+      lastSecondsShown = remainingSeconds;
+      char countdownText[20];
+      snprintf(countdownText, sizeof(countdownText), "Warte... %ds", remainingSeconds);
+      oledShowProgressBar(elapsed / 1000, 30, "Write Tag", countdownText);
+      oledSetPriority(DISPLAY_PRIORITY_ACTION, 1500);
+    }
     
     success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 400);
     
@@ -1662,6 +1716,7 @@ void writeJsonToTag(void *parameter) {
     if (uidLength != 7) {
         Serial.println("Bambu Lab tag detected during write - skipping write, sending result with weight");
         oledShowProgressBar(1, 1, "Write Tag", "Done!");
+        oledSetPriority(DISPLAY_PRIORITY_ACTION, 2000);
         
         // Send success to API with tag_uuid and current weight
         sendRfidResultAsync(uidString, params->spoolId, params->locationId, true, "", weight);
@@ -1677,6 +1732,7 @@ void writeJsonToTag(void *parameter) {
     }
     
     oledShowProgressBar(1, 3, "Write Tag", "Writing");
+    oledSetPriority(DISPLAY_PRIORITY_ACTION, 2000);
 
     // Schreibe die NDEF-Message auf den Tag
     success = ntag2xx_WriteNDEF(params->payload);
@@ -1693,6 +1749,7 @@ void writeJsonToTag(void *parameter) {
         }else{
           oledShowProgressBar(1, 1, "Write Tag", "Done!");
         }
+        oledSetPriority(DISPLAY_PRIORITY_ACTION, 3000);
         
         // CRITICAL: Properly stabilize NFC interface after write operation
         Serial.println();
@@ -1778,7 +1835,9 @@ void writeJsonToTag(void *parameter) {
     {
         Serial.println("Fehler beim Schreiben der NDEF-Message auf den Tag");
         oledShowIcon("failed");
+        oledSetPriority(DISPLAY_PRIORITY_WARNING, 2000);
         vTaskDelay(pdMS_TO_TICKS(2000));
+        oledClearPriority();
         nfcReaderState = NFC_WRITE_ERROR;
         
         // Send error response to API
@@ -1790,7 +1849,9 @@ void writeJsonToTag(void *parameter) {
   {
     Serial.println("Fehler: Kein Tag zu schreiben gefunden.");
     oledShowProgressBar(1, 1, "Failure!", "No tag found");
+    oledSetPriority(DISPLAY_PRIORITY_WARNING, 2000);
     vTaskDelay(pdMS_TO_TICKS(2000));
+    oledClearPriority();
     nfcReaderState = NFC_IDLE;
     
     // Send timeout response to API
@@ -1799,6 +1860,7 @@ void writeJsonToTag(void *parameter) {
   }
 
   // Reset write protection and cleanup
+  oledClearPriority();
   nfcWriteInProgress = false; // Re-enable high-level tag operations
   
   // Make sure we are in a safe state
@@ -1883,6 +1945,7 @@ void startWriteJsonToTag(const bool isSpoolTag, const char* payload, int spoolId
     Serial.println("startWriteJsonToTag: Starting task, lock acquired.");
 
     oledShowProgressBar(0, 1, "Write Tag", "Place tag now");
+    oledSetPriority(DISPLAY_PRIORITY_ACTION, 2000);
     // Erstelle die Task
     BaseType_t result = xTaskCreatePinnedToCore(
         writeJsonToTag,        // Task-Funktion
@@ -1903,6 +1966,7 @@ void startWriteJsonToTag(const bool isSpoolTag, const char* payload, int spoolId
   }else{
     Serial.printf("startWriteJsonToTag: State mismatch (State: %d)\n", nfcReaderState);
     oledShowProgressBar(0, 1, "FAILURE", "NFC busy!");
+    oledSetPriority(DISPLAY_PRIORITY_WARNING, 2000);
     free(parameters->payload);
     delete parameters;
   }
@@ -1971,12 +2035,14 @@ void scanRfidTask(void * parameter) {
         Serial.println("Found an ISO14443A card");
 
         nfcReaderState = NFC_READING;
+        pauseMainTask = 1;
 
         oledShowProgressBar(0, 4, "Reading", "Detecting tag");
+        oledSetPriority(DISPLAY_PRIORITY_ACTION, 1500);
 
-        // Reduced stabilization time for better responsiveness
-        Serial.println("Tag detected, minimal stabilization...");
-        vTaskDelay(pdMS_TO_TICKS(200)); // Reduced from 1000ms to 200ms
+        // Stabilization time for reliable tag communication
+        Serial.println("Tag detected, stabilizing...");
+        vTaskDelay(pdMS_TO_TICKS(500)); // Increased from 200ms for reliable reads
 
         // create Tag UID string
         String uidString = "";
@@ -1997,7 +2063,7 @@ void scanRfidTask(void * parameter) {
               Serial.println("✓ FAST-PATH: Tag processed quickly, skipping full read");
               // Set reader back to idle for next scan
               nfcReaderState = NFC_READ_SUCCESS;
-              delay(500); // Small delay before next scan
+              vTaskDelay(pdMS_TO_TICKS(500)); // Small delay before next scan
               continue; // Skip full tag reading and continue scan loop
           }
 
@@ -2044,6 +2110,7 @@ void scanRfidTask(void * parameter) {
             if (!decodeNdefAndReturnJson(data, uidString)) 
             {
               oledShowProgressBar(1, 1, "Failure", "Unknown tag");
+              oledSetPriority(DISPLAY_PRIORITY_WARNING, 2000);
               nfcReaderState = NFC_READ_ERROR;
             }
             else 
@@ -2059,6 +2126,7 @@ void scanRfidTask(void * parameter) {
             Serial.println("NTAG read failed, trying Bambu Lab tag...");
             if (!detectBambuTag(uid, uidLength)) {
                 oledShowProgressBar(1, 1, "Failure", "Tag read error");
+                oledSetPriority(DISPLAY_PRIORITY_WARNING, 2000);
                 nfcReaderState = NFC_READ_ERROR;
                 activeSpoolId = "";
                 Serial.println("Tag read failed - activeSpoolId reset to prevent autoSet");
@@ -2072,6 +2140,7 @@ void scanRfidTask(void * parameter) {
           if (!detectBambuTag(uid, uidLength)) {
             //TBD: Show error here?!
             oledShowProgressBar(1, 1, "Failure", "Unkown tag type");
+            oledSetPriority(DISPLAY_PRIORITY_WARNING, 2000);
             Serial.println("This doesn't seem to be an NTAG2xx tag (UUID length != 7 bytes)!");
             // Reset activeSpoolId when tag type is unknown to prevent autoSet
             activeSpoolId = "";
@@ -2088,6 +2157,8 @@ void scanRfidTask(void * parameter) {
         activeSpoolId = "";
         activeTagUuid = "";
         tagProcessed = false;
+        pauseMainTask = 0;
+        oledClearPriority();
         oledShowWeight(weight);
       }
 

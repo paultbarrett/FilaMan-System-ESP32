@@ -8,6 +8,7 @@
 #include "nfc.h"
 #include "config.h"
 #include <WiFi.h>
+#include "display.h"
 
 volatile filamanApiStateType filamanApiState = API_IDLE;
 bool filamanConnected = false;
@@ -122,19 +123,19 @@ bool sendWeight(int spoolId, String tagUuid, float measuredWeight) {
         DeserializationError error = deserializeJson(responseDoc, response);
         if (!error && responseDoc["remaining_weight_g"].is<float>()) {
             int remaining = (int)responseDoc["remaining_weight_g"].as<float>();
-            pauseMainTask = 1;
             oledShowRemainingWeight(remaining);
+            oledSetPriority(DISPLAY_PRIORITY_ACTION, 3000);
             vTaskDelay(pdMS_TO_TICKS(3000));
-            pauseMainTask = 0;
+            oledClearPriority();
         }
         http.end();
         return true;
     }
     else {
-        pauseMainTask = 1;
         oledShowProgressBar(1, 1, "Failure", "API Error");
+        oledSetPriority(DISPLAY_PRIORITY_WARNING, 2000);
         vTaskDelay(pdMS_TO_TICKS(2000));
-        pauseMainTask = 0;
+        oledClearPriority();
     }
     
     http.end();

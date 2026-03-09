@@ -3,12 +3,49 @@
 #include <vector>
 #include "icons.h"
 #include "main.h"
+#include <cstring>
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 bool wifiOn = false;
 bool iconToggle = false;
 
+// Display priority management
+static DisplayPriority currentPriority = DISPLAY_PRIORITY_NONE;
+static unsigned long prioritySetTime = 0;
+static unsigned long priorityMinDuration = 0;
+
+bool oledCanUpdate(DisplayPriority newPriority) {
+    if (currentPriority == DISPLAY_PRIORITY_NONE) return true;
+    // Higher priority can always preempt
+    if (newPriority > currentPriority) return true;
+    // Same or lower priority: only if minimum duration has elapsed
+    unsigned long elapsed = millis() - prioritySetTime;
+    return elapsed >= priorityMinDuration;
+}
+
+void oledSetPriority(DisplayPriority priority, unsigned long minDurationMs) {
+    currentPriority = priority;
+    prioritySetTime = millis();
+    priorityMinDuration = minDurationMs;
+}
+
+void oledClearPriority() {
+    currentPriority = DISPLAY_PRIORITY_NONE;
+    prioritySetTime = 0;
+    priorityMinDuration = 0;
+}
+
+DisplayPriority oledGetCurrentPriority() {
+    // Auto-expire: if min duration has passed, priority is effectively NONE
+    if (currentPriority != DISPLAY_PRIORITY_NONE) {
+        unsigned long elapsed = millis() - prioritySetTime;
+        if (elapsed >= priorityMinDuration) {
+            currentPriority = DISPLAY_PRIORITY_NONE;
+        }
+    }
+    return currentPriority;
+}
 void setupDisplay() {
     if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
         Serial.println(F("SSD1306 allocation failed"));
@@ -23,23 +60,11 @@ void setupDisplay() {
 }
 
 void oledclearline() {
-    int x, y;
-    for (y = 0; y < 16; y++) {
-        for (x = 0; x < SCREEN_WIDTH; x++) {
-            display.drawPixel(x, y, BLACK);
-        }
-    }
-    //display.display();
+    display.fillRect(0, 0, SCREEN_WIDTH, 16, BLACK);
 }
 
 void oledcleardata() {
-    int x, y;
-    for (y = OLED_DATA_START; y < OLED_DATA_END; y++) {
-        for (x = 0; x < SCREEN_WIDTH; x++) {
-            display.drawPixel(x, y, BLACK);
-        }
-    }
-    //display.display();
+    display.fillRect(0, OLED_DATA_START, SCREEN_WIDTH, OLED_DATA_END - OLED_DATA_START, BLACK);
 }
 
 int oled_center_h(const String &text) {
@@ -207,16 +232,16 @@ void oledShowIcon(const char* icon) {
     uint16_t iconSize = OLED_DATA_END-OLED_DATA_START;
     uint16_t iconStart = (SCREEN_WIDTH - iconSize) / 2;
 
-    if (icon == "failed") {
+    if (strcmp(icon, "failed") == 0) {
         display.drawBitmap(iconStart, OLED_DATA_START, icon_failed , iconSize, iconSize, WHITE);
     }
-    else if (icon == "success") {
+    else if (strcmp(icon, "success") == 0) {
         display.drawBitmap(iconStart, OLED_DATA_START, icon_success , iconSize, iconSize, WHITE);
     }
-    else if (icon == "transfer") {
+    else if (strcmp(icon, "transfer") == 0) {
         display.drawBitmap(iconStart, OLED_DATA_START, icon_transfer , iconSize, iconSize, WHITE);
     }
-    else if (icon == "loading") {
+    else if (strcmp(icon, "loading") == 0) {
         display.drawBitmap(iconStart, OLED_DATA_START, icon_loading , iconSize, iconSize, WHITE);
     }
 

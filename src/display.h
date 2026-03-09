@@ -6,9 +6,23 @@
 #include <Adafruit_SSD1306.h>
 #include "config.h"
 
+// Display message priority levels (higher = more important)
+enum DisplayPriority : uint8_t {
+    DISPLAY_PRIORITY_NONE    = 0,  // No message active
+    DISPLAY_PRIORITY_STATUS  = 1,  // Weight display, idle info
+    DISPLAY_PRIORITY_INFO    = 2,  // Progress bars, boot messages
+    DISPLAY_PRIORITY_ACTION  = 3,  // NFC feedback, user actions
+    DISPLAY_PRIORITY_WARNING = 4   // Errors, connection issues
+};
 
 extern Adafruit_SSD1306 display;
 extern bool wifiOn;
+
+// Display priority management
+bool oledCanUpdate(DisplayPriority newPriority);
+void oledSetPriority(DisplayPriority priority, unsigned long minDurationMs);
+void oledClearPriority();
+DisplayPriority oledGetCurrentPriority();
 
 void setupDisplay();
 void oledclearline();

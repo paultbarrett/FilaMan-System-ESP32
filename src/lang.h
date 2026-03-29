@@ -16,8 +16,10 @@ enum StringID : uint8_t {
     STR_DISPLAY_INIT,
     STR_WIFI_INIT,
     STR_WEBSERVER_INIT,
+    STR_API_INIT,
     STR_NFC_INIT,
     STR_SEARCHING_SCALE,
+    STR_INIT_DONE,
 
     // Scale
     STR_TARE_SCALE,
@@ -87,6 +89,10 @@ enum StringID : uint8_t {
     // OTA
     STR_UPDATE,
     STR_DOWNLOAD,
+
+    // No-Scale mode
+    STR_NOSCALE_MODE,
+    STR_NOSCALE_PROMPT,
 
     STR_COUNT  // must be last
 };

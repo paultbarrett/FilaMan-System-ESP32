@@ -10,8 +10,10 @@ Lang currentLang = LANG_EN;
 static const char EN_DISPLAY_INIT[]      = "Display init";
 static const char EN_WIFI_INIT[]         = "WiFi init";
 static const char EN_WEBSERVER_INIT[]    = "Webserver init";
+static const char EN_API_INIT[]          = "API init";
 static const char EN_NFC_INIT[]          = "NFC init";
 static const char EN_SEARCHING_SCALE[]   = "Searching scale";
+static const char EN_INIT_DONE[]         = "Setup finished";
 
 static const char EN_TARE_SCALE[]        = "TARE Scale";
 static const char EN_SCALE_NOT_CAL[]     = "Scale not calibrated";
@@ -76,14 +78,19 @@ static const char EN_WIFI_RECONN[]       = "WiFi reconnecting";
 static const char EN_UPDATE[]            = "Update";
 static const char EN_DOWNLOAD[]          = "Download";
 
+static const char EN_NOSCALE_MODE[]      = "Activate NFC-only mode";
+static const char EN_NOSCALE_PROMPT[]    = "ready...";
+
 // =====================================================================
 // German strings
 // =====================================================================
 static const char DE_DISPLAY_INIT[]      = "Display init";
 static const char DE_WIFI_INIT[]         = "WiFi init";
 static const char DE_WEBSERVER_INIT[]    = "Webserver init";
+static const char DE_API_INIT[]          = "API init";
 static const char DE_NFC_INIT[]          = "NFC init";
 static const char DE_SEARCHING_SCALE[]   = "Suche Waage";
+static const char DE_INIT_DONE[]         = "Setup abgeschlossen";
 
 static const char DE_TARE_SCALE[]        = "Waage tarieren";
 static const char DE_SCALE_NOT_CAL[]     = "Waage nicht kalibriert";
@@ -148,6 +155,9 @@ static const char DE_WIFI_RECONN[]       = "WiFi Neuverbindung";
 static const char DE_UPDATE[]            = "Update";
 static const char DE_DOWNLOAD[]          = "Download";
 
+static const char DE_NOSCALE_MODE[]      = "Aktiviere NFC-only Modus";
+static const char DE_NOSCALE_PROMPT[]    = "bereit...";
+
 // =====================================================================
 // String table: [StringID][Lang]
 // =====================================================================
@@ -156,8 +166,10 @@ static const char* const stringTable[STR_COUNT][LANG_COUNT] = {
     { EN_DISPLAY_INIT,     DE_DISPLAY_INIT },
     { EN_WIFI_INIT,        DE_WIFI_INIT },
     { EN_WEBSERVER_INIT,   DE_WEBSERVER_INIT },
+    { EN_API_INIT,         DE_API_INIT },
     { EN_NFC_INIT,         DE_NFC_INIT },
     { EN_SEARCHING_SCALE,  DE_SEARCHING_SCALE },
+    { EN_INIT_DONE,        DE_INIT_DONE },
 
     // Scale
     { EN_TARE_SCALE,       DE_TARE_SCALE },
@@ -227,6 +239,10 @@ static const char* const stringTable[STR_COUNT][LANG_COUNT] = {
     // OTA
     { EN_UPDATE,           DE_UPDATE },
     { EN_DOWNLOAD,         DE_DOWNLOAD },
+
+    // No-Scale mode
+    { EN_NOSCALE_MODE,     DE_NOSCALE_MODE },
+    { EN_NOSCALE_PROMPT,   DE_NOSCALE_PROMPT },
 };
 
 const char* tr(StringID id) {

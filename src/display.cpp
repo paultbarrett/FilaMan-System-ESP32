@@ -115,7 +115,7 @@ void setupDisplay() {
     lastActivityMillis = millis();
 
     oledShowTopRow();
-    oledShowProgressBar(0, 7, DISPLAY_BOOT_TEXT, tr(STR_DISPLAY_INIT));
+    oledShowProgressBar(0, NUM_SETUP_STEPS, DISPLAY_BOOT_TEXT, tr(STR_DISPLAY_INIT));
 }
 
 void oledclearline() {
@@ -144,14 +144,14 @@ int oled_center_v(const String &text) {
 std::vector<String> splitTextIntoLines(const String &text, uint8_t textSize) {
     std::vector<String> lines;
     display.setTextSize(textSize);
-    
+
     // Text in Wörter aufteilen
     std::vector<String> words;
     int pos = 0;
     while (pos < text.length()) {
         // Überspringe Leerzeichen am Anfang
         while (pos < text.length() && text[pos] == ' ') pos++;
-        
+
         // Finde nächstes Leerzeichen
         int nextSpace = text.indexOf(' ', pos);
         if (nextSpace == -1) {
@@ -165,19 +165,19 @@ std::vector<String> splitTextIntoLines(const String &text, uint8_t textSize) {
         words.push_back(text.substring(pos, nextSpace));
         pos = nextSpace + 1;
     }
-    
+
     // Wörter zu Zeilen zusammenfügen
     String currentLine = "";
     for (size_t i = 0; i < words.size(); i++) {
         String testLine = currentLine;
         if (currentLine.length() > 0) testLine += " ";
         testLine += words[i];
-        
+
         // Prüfe ob diese Kombination auf die Zeile passt
         int16_t x1, y1;
         uint16_t lineWidth, h;
         display.getTextBounds(testLine, 0, OLED_DATA_START, &x1, &y1, &lineWidth, &h);
-        
+
         if (lineWidth <= SCREEN_WIDTH) {
             // Passt noch in diese Zeile
             currentLine = testLine;
@@ -192,40 +192,40 @@ std::vector<String> splitTextIntoLines(const String &text, uint8_t textSize) {
             }
         }
     }
-    
+
     // Letzte Zeile hinzufügen
     if (currentLine.length() > 0) {
         lines.push_back(currentLine);
     }
-    
+
     return lines;
 }
 
 void oledShowMultilineMessage(const String &message, uint8_t size) {
     std::vector<String> lines;
     int maxLines = 3;  // Maximale Anzahl Zeilen für size 2
-    
+
     // Erste Prüfung mit aktueller Größe
     lines = splitTextIntoLines(message, size);
-    
+
     // Wenn mehr als maxLines Zeilen, reduziere Textgröße
     if (lines.size() > maxLines && size > 1) {
         size = 1;
         lines = splitTextIntoLines(message, size);
     }
-    
+
     // Ausgabe
     display.setTextSize(size);
     int lineHeight = size * 8;
     int totalHeight = lines.size() * lineHeight;
     int startY = OLED_DATA_START + ((OLED_DATA_END - OLED_DATA_START - totalHeight) / 2);
-    
+
     uint8_t lineDistance = (lines.size() == 2) ? 5 : 0;
     for (size_t i = 0; i < lines.size(); i++) {
         display.setCursor(oled_center_h(lines[i]), startY + (i * lineHeight) + (i == 1 ? lineDistance : 0));
         display.print(lines[i]);
     }
-    
+
     display.display();
 }
 
@@ -233,12 +233,12 @@ void oledDisplayText(const String &message, uint8_t size) {
     oledcleardata();
     display.setTextSize(size);
     display.setTextWrap(false);
-    
+
     // Prüfe ob Text in eine Zeile passt
     int16_t x1, y1;
     uint16_t textWidth, h;
     display.getTextBounds(message, 0, 0, &x1, &y1, &textWidth, &h);
-   
+
     // Text passt in eine Zeile?
     if (textWidth <= SCREEN_WIDTH) {
         display.setCursor(oled_center_h(message), oled_center_v(message));
@@ -250,6 +250,12 @@ void oledDisplayText(const String &message, uint8_t size) {
 }
 
 void oledShowTopRow() {
+    const u_int8_t rightmost_x = 108;
+    const u_int8_t x_offset = 25;
+    const u_int8_t symbol_width =16;
+    const u_int8_t symbol_height =16;
+    u_int8_t x_pos = rightmost_x;
+
     oledclearline();
 
     display.setTextSize(1);
@@ -259,29 +265,45 @@ void oledShowTopRow() {
 
     iconToggle = !iconToggle;
 
+    // draw symbols from right to left
     // Do not show status indicators during boot
     if(!booting){
-        if (filamanConnected) {
-            display.drawBitmap(80, 0, bitmap_spoolman_on , 16, 16, WHITE);
+        // WiFi
+        x_pos = rightmost_x;
+        if (wifiOn == 1) {
+            display.drawBitmap(x_pos, 0, wifi_on , symbol_width, symbol_height, WHITE);
         } else {
             if(iconToggle){
-                display.drawBitmap(80, 0, bitmap_spoolman_on , 16, 16, WHITE);
-                display.drawLine(80, 15, 96, 0, WHITE);
-                display.drawLine(81, 15, 97, 0, WHITE);
+                display.drawBitmap(x_pos, 0, wifi_on , symbol_width, symbol_height, WHITE);
+                display.drawLine(x_pos, symbol_height-1, x_pos + symbol_width, 0, WHITE);
+                display.drawLine(x_pos+1, symbol_height-1, x_pos+1 + symbol_width, 0, WHITE);
             }
         }
 
-        if (wifiOn == 1) {
-            display.drawBitmap(107, 0, wifi_on , 16, 16, WHITE);
+        // Backend
+        x_pos -= x_offset;  // change x position to the left
+        if (filamanConnected) {
+            display.drawBitmap(x_pos, 0, bitmap_spoolman_on , symbol_width, symbol_height, WHITE);
         } else {
             if(iconToggle){
-                display.drawBitmap(107, 0, wifi_on , 16, 16, WHITE);
-                display.drawLine(107, 15, 123, 0, WHITE);
-                display.drawLine(108, 15, 124, 0, WHITE);
+                display.drawBitmap(x_pos, 0, bitmap_spoolman_on , symbol_width, symbol_height, WHITE);
+                display.drawLine(x_pos, symbol_height-1, x_pos + symbol_width, 0, WHITE);
+                display.drawLine(x_pos+1, symbol_height-1, x_pos+1 + symbol_width, 0, WHITE);
             }
         }
+
+        // Scale
+        x_pos -= x_offset;  // change x position to the left
+        if (scaleConnected) {
+            display.drawBitmap(x_pos, 0, bitmap_scale_on , symbol_width, symbol_height, WHITE);
+        } else {
+            display.drawBitmap(x_pos, 0, bitmap_scale_on , symbol_width, symbol_height, WHITE);
+            display.drawLine(x_pos-1, symbol_height-1, x_pos-1 + symbol_width, 0, WHITE);
+            display.drawLine(x_pos, symbol_height-1, x_pos + symbol_width, 0, WHITE);
+            display.drawLine(x_pos+1, symbol_height-1, x_pos+1 + symbol_width, 0, WHITE);
+        }
     }
-    
+
     display.display();
 }
 
@@ -313,7 +335,7 @@ void oledShowProgressBar(const uint8_t step, const uint8_t numSteps, const char*
     // clear data and bar area
     display.fillRect(0, OLED_DATA_START, SCREEN_WIDTH, SCREEN_HEIGHT-16, BLACK);
 
-    
+
     display.setTextWrap(false);
     display.setTextSize(2);
     display.setCursor(0, OLED_DATA_START+4);
@@ -343,7 +365,7 @@ void oledShowRemainingWeight(uint16_t remainingWeight) {
     display.setTextSize(1);
     display.setCursor(oled_center_h(tr(STR_WEIGHT_SENT_REST)), OLED_DATA_START + 4);
     display.print(tr(STR_WEIGHT_SENT_REST));
-    
+
     display.setTextSize(3);
     String weightStr = String(remainingWeight) + " g";
     display.setCursor(oled_center_h(weightStr), OLED_DATA_START + 22);
@@ -354,15 +376,15 @@ void oledShowRemainingWeight(uint16_t remainingWeight) {
 void oledShowConnectionError(const char* error, const String& ip) {
     oledcleardata();
     display.setTextSize(1);
-    
+
     // Error Message
     display.setCursor(oled_center_h(error), OLED_DATA_START + 4);
     display.print(error);
-    
+
     // IP Address
     display.setTextSize(1);
     display.setCursor(oled_center_h(ip), OLED_DATA_START + 24);
     display.print(ip);
-    
+
     display.display();
 }

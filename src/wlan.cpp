@@ -14,17 +14,17 @@ uint8_t wifiErrorCounter = 0;
 
 void wifiSettings() {
     // Standard WiFi-Einstellungen für höchste Stabilität mit ESPAsyncWebServer
-    WiFi.mode(WIFI_STA); 
+    WiFi.mode(WIFI_STA);
     WiFi.setHostname("FilaMan");
-    
+
     // KRITISCH: Power-Save deaktivieren für stabilen Webserver-Betrieb
     // Ohne dies geht WiFi in Modem-Sleep und verpasst Requests/Responses
     // Dies ist die Hauptursache für Verbindungsabbrüche bei regelmäßigen API-Calls
     esp_wifi_set_ps(WIFI_PS_NONE);
-    
+
     // Angemessene Sendeleistung (reduziert Hitzeprobleme)
     WiFi.setTxPower(WIFI_POWER_17dBm);
-    
+
     // Aktiviere WiFi-Roaming für bessere Stabilität bei schwachem Signal
     esp_wifi_set_rssi_threshold(-80);
 }
@@ -51,19 +51,19 @@ void initWiFi() {
   wm.setWiFiAutoReconnect(true);
   wm.setConnectTimeout(10);
 
-  oledShowProgressBar(1, 7, DISPLAY_BOOT_TEXT, tr(STR_WIFI_INIT));
-  
+  oledShowProgressBar(1, NUM_SETUP_STEPS, DISPLAY_BOOT_TEXT, tr(STR_WIFI_INIT));
+
   //bool res = wm.autoConnect("FilaMan"); // anonymous ap
   if(!wm.autoConnect("FilaMan")) {
     Serial.println("Failed to connect or hit timeout");
     // ESP.restart();
     oledShowTopRow();
     oledDisplayText(tr(STR_WIFI_NOT_CONNECTED));
-  } 
+  }
   else {
     wifiOn = true;
 
-    //if you get here you have connected to the WiFi    
+    //if you get here you have connected to the WiFi
     Serial.println("connected...yeey :)");
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
@@ -73,23 +73,23 @@ void initWiFi() {
 }
 
 void checkWiFiConnection() {
-  if (WiFi.status() != WL_CONNECTED) 
+  if (WiFi.status() != WL_CONNECTED)
   {
     if (wifiOn) {
         Serial.println("WiFi connection lost. Attempting active reconnect...");
         wifiOn = false;
         oledShowTopRow();
         oledDisplayText(tr(STR_WIFI_RECONNECTING));
-        
+
         // Aktiver Reconnect-Versuch statt nur auf LwIP auto-reconnect zu warten
         WiFi.reconnect();
     }
-    
+
     wifiErrorCounter++;
 
     // Only restart after a significant time of no connection (e.g. 5 minutes)
     // Assuming WIFI_CHECK_INTERVAL is 60000ms (1 minute), 5 errors = 5 minutes
-    if (wifiErrorCounter >= 5) 
+    if (wifiErrorCounter >= 5)
     {
       Serial.println("WiFi unable to reconnect for 5 minutes. Restarting...");
       ESP.restart();
@@ -102,7 +102,7 @@ void checkWiFiConnection() {
         wifiErrorCounter = 0;
         wifiOn = true;
         oledShowTopRow();
-        
+
         // Power-Save erneut deaktivieren nach Reconnect (wird manchmal zurückgesetzt)
         esp_wifi_set_ps(WIFI_PS_NONE);
     } else {

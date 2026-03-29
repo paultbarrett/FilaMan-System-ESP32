@@ -124,8 +124,8 @@ void sendNfcData() {
 }
 
 void setupWebserver(AsyncWebServer &server) {
-    oledShowProgressBar(2, 7, DISPLAY_BOOT_TEXT, tr(STR_WEBSERVER_INIT));
-    
+    oledShowProgressBar(2, NUM_SETUP_STEPS, DISPLAY_BOOT_TEXT, tr(STR_WEBSERVER_INIT));
+
     ws.onEvent(onWsEvent);
     server.addHandler(&ws);
 
@@ -138,7 +138,7 @@ void setupWebserver(AsyncWebServer &server) {
         .setCacheControl(CACHE_ASSETS);
     server.serveStatic("/favicon.ico", LittleFS, "/favicon.ico")
         .setCacheControl(CACHE_ASSETS);
-    
+
     // ===== STATISCHE HTML-SEITEN (ohne Template-Ersetzung) =====
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
         Serial.println("Web: Request /");
@@ -214,7 +214,7 @@ void setupWebserver(AsyncWebServer &server) {
 
         String payloadString;
         serializeJson(doc, payloadString);
-        
+
         bool hasSpoolId = !doc["spool_id"].isNull() || !doc["sm_id"].isNull();
         int spoolId = doc["spool_id"] | 0;
         if (spoolId == 0 && doc["sm_id"].is<String>()) {
@@ -223,7 +223,7 @@ void setupWebserver(AsyncWebServer &server) {
         int locationId = doc["location_id"] | 0;
 
         startWriteJsonToTag(hasSpoolId, payloadString.c_str(), spoolId, locationId);
-        
+
         // Respond immediately
         request->send(200, "application/json", "{\"success\": true, \"message\": \"Schreibvorgang wurde gestartet. Bitte Tag bereit halten...\"}");
     });

@@ -16,8 +16,10 @@ enum StringID : uint8_t {
     STR_DISPLAY_INIT,
     STR_WIFI_INIT,
     STR_WEBSERVER_INIT,
+    STR_API_INIT,
     STR_NFC_INIT,
     STR_SEARCHING_SCALE,
+    STR_INIT_DONE,
 
     // Scale
     STR_TARE_SCALE,

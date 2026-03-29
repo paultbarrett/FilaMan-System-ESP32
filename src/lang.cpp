@@ -10,8 +10,10 @@ Lang currentLang = LANG_EN;
 static const char EN_DISPLAY_INIT[]      = "Display init";
 static const char EN_WIFI_INIT[]         = "WiFi init";
 static const char EN_WEBSERVER_INIT[]    = "Webserver init";
+static const char EN_API_INIT[]          = "API init";
 static const char EN_NFC_INIT[]          = "NFC init";
 static const char EN_SEARCHING_SCALE[]   = "Searching scale";
+static const char EN_INIT_DONE[]         = "Setup finished";
 
 static const char EN_TARE_SCALE[]        = "TARE Scale";
 static const char EN_SCALE_NOT_CAL[]     = "Scale not calibrated";
@@ -82,8 +84,10 @@ static const char EN_DOWNLOAD[]          = "Download";
 static const char DE_DISPLAY_INIT[]      = "Display init";
 static const char DE_WIFI_INIT[]         = "WiFi init";
 static const char DE_WEBSERVER_INIT[]    = "Webserver init";
+static const char DE_API_INIT[]          = "API init";
 static const char DE_NFC_INIT[]          = "NFC init";
 static const char DE_SEARCHING_SCALE[]   = "Suche Waage";
+static const char DE_INIT_DONE[]         = "Setup abgeschlossen";
 
 static const char DE_TARE_SCALE[]        = "Waage tarieren";
 static const char DE_SCALE_NOT_CAL[]     = "Waage nicht kalibriert";

@@ -53,7 +53,7 @@ void setup() {
 
   // Touch Sensor
   pinMode(TTP223_PIN, INPUT_PULLUP);
-  if (digitalRead(TTP223_PIN) == LOW) 
+  if (digitalRead(TTP223_PIN) == LOW)
   {
     Serial.println("Touch Sensor is connected");
     touchSensorConnected = true;
@@ -68,6 +68,8 @@ void setup() {
   esp_task_wdt_init(10, panic);
 
   booting = false;
+  oledShowProgressBar(6, NUM_SETUP_STEPS, DISPLAY_BOOT_TEXT, tr(STR_INIT_DONE));
+
   // Aktuellen Task (loopTask) zum Watchdog hinzufügen
   esp_task_wdt_add(NULL);
 }
@@ -123,7 +125,7 @@ void loop() {
   }
 
   // Überprüfe den Status des Touch Sensors
-  if (touchSensorConnected && digitalRead(TTP223_PIN) == HIGH && currentMillis - lastButtonPress > debounceDelay) 
+  if (touchSensorConnected && digitalRead(TTP223_PIN) == HIGH && currentMillis - lastButtonPress > debounceDelay)
   {
     lastButtonPress = currentMillis;
     scaleTareRequest = true;
@@ -131,18 +133,18 @@ void loop() {
   }
 
   // Überprüfe regelmäßig die WLAN-Verbindung
-  if (intervalElapsed(currentMillis, lastWifiCheckTime, WIFI_CHECK_INTERVAL)) 
+  if (intervalElapsed(currentMillis, lastWifiCheckTime, WIFI_CHECK_INTERVAL))
   {
     checkWiFiConnection();
   }
 
   // Periodic display update
-  if (intervalElapsed(currentMillis, lastTopRowUpdateTime, DISPLAY_UPDATE_INTERVAL)) 
+  if (intervalElapsed(currentMillis, lastTopRowUpdateTime, DISPLAY_UPDATE_INTERVAL))
   {
     oledShowTopRow();
     oledCheckSleep(); // Put display to sleep if timeout elapsed
   }
-  
+
   // WebSocket Cleanup alle 5 Sekunden (häufiger als vorher)
   // Tote Clients können WiFi-Ressourcen blockieren
   static unsigned long lastWsCleanup = 0;
@@ -152,21 +154,21 @@ void loop() {
   }
 
   // Periodic FilaMan heartbeat
-  if (intervalElapsed(currentMillis, lastFilamanHeartbeatTime, FILAMAN_HEARTBEAT_INTERVAL)) 
+  if (intervalElapsed(currentMillis, lastFilamanHeartbeatTime, FILAMAN_HEARTBEAT_INTERVAL))
   {
     sendHeartbeatAsync();
   }
 
   // If scale is not calibrated, only show a warning
-  if (!scaleCalibrated) 
+  if (!scaleCalibrated)
   {
     // Do not show the warning if the calibratin process is onging
     if(!scaleCalibrationActive){
       oledDisplayText(tr(STR_SCALE_NOT_CALIBRATED));
       vTaskDelay(pdMS_TO_TICKS(1000));
     }
-  } 
-  else 
+  }
+  else
   {
     // Ausgabe der Waage auf Display
     // Block weight display during NFC write operations and higher-priority display messages
@@ -201,8 +203,8 @@ void loop() {
           oledShowProgressBar(2, 4, tr(STR_SPOOL_TAG), tr(STR_WEIGHT_STABLE));
           oledSetPriority(DISPLAY_PRIORITY_INFO, 1000);
         }
-      } 
-      else 
+      }
+      else
       {
         // Show visual feedback when tag is present and weight is unstable
         if (weightCounterToApi > 0 && nfcReaderState == NFC_READ_SUCCESS && !tagProcessed && weightSend == 0) {
@@ -216,10 +218,10 @@ void loop() {
     lastWeight = weight;
 
     // Wenn ein Tag erkannt wurde und das Gewicht stabil ist (4+ seconds), an FilaMan senden
-    if (weightCounterToApi > 3 && weightSend == 0 && nfcReaderState == NFC_READ_SUCCESS && tagProcessed == false) 
+    if (weightCounterToApi > 3 && weightSend == 0 && nfcReaderState == NFC_READ_SUCCESS && tagProcessed == false)
     {
       tagProcessed = true;
-      
+
       // Check if it's a Bambu tag - if so, send only UUID without spoolId
       if (isBambuTag) {
         sendWeightAsync(0, activeTagUuid, weight);
@@ -231,24 +233,24 @@ void loop() {
         Serial.println("Weight queued for FilaMan");
       }
       weightSend = 1;
-      
+
       // Feedback to user
       oledShowProgressBar(3, 4, tr(STR_SPOOL_TAG), tr(STR_SENDING));
       oledSetPriority(DISPLAY_PRIORITY_ACTION, 2000);
     }
 
     // Handle successful tag write
-    if (nfcReaderState == NFC_WRITE_SUCCESS && tagProcessed == false) 
+    if (nfcReaderState == NFC_WRITE_SUCCESS && tagProcessed == false)
     {
       tagProcessed = true;
-      
+
       // Only send weight if a valid spoolId exists (spool tag, not location tag)
       if (activeSpoolId.length() > 0 && activeSpoolId != "0") {
         int sId = activeSpoolId.toInt();
         sendWeightAsync(sId, activeTagUuid, weight);
         weightSend = 1;
         Serial.println("Weight queued for FilaMan after spool tag write");
-        
+
         // Feedback to user
         oledShowProgressBar(3, 4, tr(STR_TAG_WRITTEN), tr(STR_SENDING));
         oledSetPriority(DISPLAY_PRIORITY_ACTION, 2000);

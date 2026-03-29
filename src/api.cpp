@@ -136,7 +136,7 @@ bool sendWeight(int spoolId, String tagUuid, float measuredWeight) {
     Serial.printf("API payload: %s\n", payload.c_str());
     int httpCode = http.POST(payload);
     Serial.printf("API response code: %d\n", httpCode);
-    
+
     if (httpCode == 200) {
         String response = http.getString();
         JsonDocument responseDoc;
@@ -157,7 +157,7 @@ bool sendWeight(int spoolId, String tagUuid, float measuredWeight) {
         vTaskDelay(pdMS_TO_TICKS(2000));
         oledClearPriority();
     }
-    
+
     http.end();
     return false;
 }
@@ -192,7 +192,7 @@ bool sendRfidResult(String tagUuid, int spoolId, int locationId, bool success, S
     http.addHeader("Content-Type", "application/json");
     http.addHeader("Authorization", "Device " + filamanToken);
     http.addHeader("Connection", "keep-alive");
-    
+
     JsonDocument doc;
     doc["success"] = success;
     if (tagUuid.length() > 0) doc["tag_uuid"] = tagUuid;
@@ -200,7 +200,7 @@ bool sendRfidResult(String tagUuid, int spoolId, int locationId, bool success, S
     if (locationId > 0) doc["location_id"] = locationId;
     if (errorMessage.length() > 0) doc["error_message"] = errorMessage;
     if (remainingWeight > 0) doc["remaining_weight_g"] = remainingWeight;
-    
+
     String payload;
     serializeJson(doc, payload);
     int httpCode = http.POST(payload);
@@ -212,7 +212,7 @@ void filamanApiTask(void* pvParameters) {
     for (;;) {
         ApiRequest req;
         bool hasReq = false;
-        
+
         if (xSemaphoreTake(queueMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
             for(int i=0; i<MAX_API_QUEUE; i++) {
                 if(apiQueue[i].active) {
@@ -324,11 +324,12 @@ void sendRfidResultAsync(String tagUuid, int spoolId, int locationId, bool succe
 }
 
 bool initFilaman() {
+    oledShowProgressBar(3, NUM_SETUP_STEPS, DISPLAY_BOOT_TEXT, tr(STR_API_INIT));
     loadFilamanConfig();
     queueMutex = xSemaphoreCreateMutex();
     // Move to Core 1 (Hardware Core) to free up Core 0 for WiFi/Webserver
     // Set priority to 1 (same as Scale/NFC) to ensure fair scheduling
-    xTaskCreatePinnedToCore(filamanApiTask, "FilaManApi", 6144, NULL, 1, NULL, 1); 
+    xTaskCreatePinnedToCore(filamanApiTask, "FilaManApi", 6144, NULL, 1, NULL, 1);
     if (checkFilamanRegistration()) sendHeartbeatAsync();
     return true;
 }

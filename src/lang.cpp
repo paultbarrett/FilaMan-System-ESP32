@@ -160,8 +160,10 @@ static const char* const stringTable[STR_COUNT][LANG_COUNT] = {
     { EN_DISPLAY_INIT,     DE_DISPLAY_INIT },
     { EN_WIFI_INIT,        DE_WIFI_INIT },
     { EN_WEBSERVER_INIT,   DE_WEBSERVER_INIT },
+    { EN_API_INIT,         DE_API_INIT },
     { EN_NFC_INIT,         DE_NFC_INIT },
     { EN_SEARCHING_SCALE,  DE_SEARCHING_SCALE },
+    { EN_INIT_DONE,        DE_INIT_DONE },
 
     // Scale
     { EN_TARE_SCALE,       DE_TARE_SCALE },

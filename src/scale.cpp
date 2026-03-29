@@ -362,15 +362,6 @@ void start_scale(bool touchSensorConnected) {
 
   oledShowProgressBar(5, NUM_SETUP_STEPS, DISPLAY_BOOT_TEXT, tr(STR_SEARCHING_SCALE));
   friendlyWait(3000);
-  // for (uint16_t i = 0; i < 3000; i++) {
-  //   yield();
-  //   vTaskDelay(pdMS_TO_TICKS(1));
-  //   esp_task_wdt_reset();
-  // }
-
-  // while(!scale.is_ready()) {
-  //   vTaskDelay(pdMS_TO_TICKS(5000));
-  // }
 
   scaleConnected = scaleDetected();
   if ( scaleConnected ) {
@@ -400,9 +391,12 @@ void start_scale(bool touchSensorConnected) {
     }
   }
   else {
+    // No HX711 - switching to NFC-only mode
     Serial.println("Kann kein HX711 Board finden !");            // Sende Text "Kann kein..." an seriellen Monitor
     oledDisplayText(tr(STR_HX711_NOT_FOUND));
-    vTaskDelay(pdMS_TO_TICKS(2000));
+    vTaskDelay(pdMS_TO_TICKS(1500));
+    oledDisplayText(tr(STR_NOSCALE_MODE));
+    vTaskDelay(pdMS_TO_TICKS(1500));
   }
 }
 

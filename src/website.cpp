@@ -18,12 +18,22 @@
 #endif
 
 #define NO_CACHE "no-cache, no-store, must-revalidate"
+#define CACHE_ASSETS "max-age=86400"  // 24h Cache für statische Assets
 
 AsyncWebServer server(webserverPort);
 AsyncWebSocket ws("/ws");
 
 uint8_t lastSuccess = 0;
 nfcReaderStateType lastnfcReaderState = NFC_IDLE;
+
+// Template-Processor für dynamische Seiten (ESPAsyncWebServer built-in)
+// Ersetzt %variable% Platzhalter in HTML-Dateien
+String templateProcessor(const String& var) {
+    if (var == "registered") return filamanRegistered ? "Registered" : "Not Registered";
+    if (var == "filamanUrl") return filamanUrl;
+    if (var == "autoTare") return autoTare ? "checked" : "";
+    return String();  // Unbekannte Variable - leer zurückgeben
+}
 
 void sendNfcDataToClient(AsyncWebSocketClient *client) {
     if(!client) return;
@@ -119,69 +129,47 @@ void setupWebserver(AsyncWebServer &server) {
     ws.onEvent(onWsEvent);
     server.addHandler(&ws);
 
-    // Static Routes
+    // ===== STATISCHE ASSETS mit serveStatic() =====
+    // Optimiert für concurrent Requests, mit 24h Browser-Cache
+    // serveStatic() ist nicht-blockierend und handhabt parallele Requests besser
+    server.serveStatic("/style.css", LittleFS, "/style.css")
+        .setCacheControl(CACHE_ASSETS);
+    server.serveStatic("/logo.png", LittleFS, "/logo.png")
+        .setCacheControl(CACHE_ASSETS);
+    server.serveStatic("/favicon.ico", LittleFS, "/favicon.ico")
+        .setCacheControl(CACHE_ASSETS);
+    
+    // ===== STATISCHE HTML-SEITEN (ohne Template-Ersetzung) =====
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
         Serial.println("Web: Request /");
-        AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/index.html", "text/html");
-        response->addHeader("Cache-Control", NO_CACHE);
-        request->send(response);
-    });
-
-    server.on("/waage", HTTP_GET, [](AsyncWebServerRequest *request){
-        Serial.println("Web: Request /waage");
-        String html = readFile("/waage.html");
-        html.replace("{{autoTare}}", autoTare ? "checked" : "");
-        auto response = request->beginResponse(200, "text/html", html);
-        response->addHeader("Cache-Control", NO_CACHE);
-        request->send(response);
-    });
-
-    server.on("/setup", HTTP_GET, [](AsyncWebServerRequest *request){
-        Serial.println("Web: Request /setup");
-        String html = readFile("/setup.html");
-        html.replace("{{registered}}", filamanRegistered ? "Registered" : "Not Registered");
-        html.replace("{{filamanUrl}}", filamanUrl);
-        auto response = request->beginResponse(200, "text/html", html);
-        response->addHeader("Cache-Control", NO_CACHE);
-        request->send(response);
+        request->send(LittleFS, "/index.html", "text/html");
     });
 
     server.on("/wifi", HTTP_GET, [](AsyncWebServerRequest *request){
         Serial.println("Web: Request /wifi");
-        AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/wifi.html", "text/html");
-        response->addHeader("Cache-Control", NO_CACHE);
-        request->send(response);
+        request->send(LittleFS, "/wifi.html", "text/html");
     });
 
     server.on("/upgrade", HTTP_GET, [](AsyncWebServerRequest *request) {
         Serial.println("Web: Request /upgrade");
-        AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/upgrade.html", "text/html");
-        response->addHeader("Cache-Control", NO_CACHE);
-        request->send(response);
+        request->send(LittleFS, "/upgrade.html", "text/html");
     });
 
     server.on("/version.txt", HTTP_GET, [](AsyncWebServerRequest *request){
-        AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/version.txt", "text/plain");
-        response->addHeader("Cache-Control", NO_CACHE);
-        request->send(response);
+        request->send(LittleFS, "/version.txt", "text/plain");
     });
 
-    server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request){
-        AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/style.css", "text/css");
-        response->addHeader("Cache-Control", NO_CACHE);
-        request->send(response);
+    // ===== DYNAMISCHE HTML-SEITEN (mit Template-Processor) =====
+    // Nutzt den eingebauten Template-Processor für %variable% Ersetzung
+    // Nicht-blockierend: Datei wird gestreamt und Variablen on-the-fly ersetzt
+    server.on("/waage", HTTP_GET, [](AsyncWebServerRequest *request){
+        Serial.println("Web: Request /waage");
+        request->send(LittleFS, "/waage.html", "text/html", false, templateProcessor);
     });
 
-    server.on("/logo.png", HTTP_GET, [](AsyncWebServerRequest *request){
-        AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/logo.png", "image/png");
-        response->addHeader("Cache-Control", NO_CACHE);
-        request->send(response);
-    });
-
-    server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request){
-        AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/favicon.ico", "image/x-icon");
-        response->addHeader("Cache-Control", NO_CACHE);
-        request->send(response);
+    server.on("/setup", HTTP_GET, [](AsyncWebServerRequest *request){
+        Serial.println("Web: Request /setup");
+        request->send(LittleFS, "/setup.html", "text/html", false, templateProcessor);
     });
 
     // API Routes

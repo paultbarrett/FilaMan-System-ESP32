@@ -80,10 +80,12 @@ bool registerDevice(const String& deviceCode) {
 bool sendHeartbeat() {
     if (!checkFilamanRegistration() || WiFi.status() != WL_CONNECTED) return false;
     HTTPClient http;
-    http.setTimeout(3000);
+    http.setTimeout(10000);  // 10s statt 3s - wichtig für instabile Verbindungen
+    http.setReuse(true);     // Keep-Alive aktivieren für bessere Performance
     http.begin(filamanUrl + "/api/v1/devices/heartbeat");
     http.addHeader("Content-Type", "application/json");
     http.addHeader("Authorization", "Device " + filamanToken);
+    http.addHeader("Connection", "keep-alive");  // Explizit Keep-Alive anfordern
     JsonDocument doc;
     doc["ip_address"] = WiFi.localIP().toString();
     String payload;
@@ -94,6 +96,21 @@ bool sendHeartbeat() {
     return filamanConnected;
 }
 
+// Heartbeat mit Retry-Logik für mehr Stabilität
+bool sendHeartbeatWithRetry(int maxRetries = 2) {
+    for (int attempt = 0; attempt <= maxRetries; attempt++) {
+        if (sendHeartbeat()) {
+            return true;
+        }
+        if (attempt < maxRetries) {
+            Serial.printf("Heartbeat failed, retry %d/%d...\n", attempt + 1, maxRetries);
+            vTaskDelay(pdMS_TO_TICKS(1000));  // 1s warten vor Retry
+        }
+    }
+    Serial.println("Heartbeat failed after all retries");
+    return false;
+}
+
 bool sendWeight(int spoolId, String tagUuid, float measuredWeight) {
     Serial.printf("sendWeight: sending to API - spoolId=%d, tagUuid=%s, weight=%.1f\n", spoolId, tagUuid.c_str(), measuredWeight);
     if (!checkFilamanRegistration() || WiFi.status() != WL_CONNECTED) {
@@ -101,10 +118,12 @@ bool sendWeight(int spoolId, String tagUuid, float measuredWeight) {
         return false;
     }
     HTTPClient http;
-    http.setTimeout(3000);
+    http.setTimeout(10000);  // 10s Timeout
+    http.setReuse(true);
     http.begin(filamanUrl + "/api/v1/devices/scale/weight");
     http.addHeader("Content-Type", "application/json");
     http.addHeader("Authorization", "Device " + filamanToken);
+    http.addHeader("Connection", "keep-alive");
     JsonDocument doc;
     // Only add spool_id if it's > 0 (for NTAG tags with spool ID)
     // For Bambu tags (spoolId == 0), only send tag_uuid
@@ -146,10 +165,12 @@ bool sendWeight(int spoolId, String tagUuid, float measuredWeight) {
 bool sendLocation(int spoolId, String spoolTagUuid, int locationId, String locationTagUuid) {
     if (!checkFilamanRegistration() || WiFi.status() != WL_CONNECTED) return false;
     HTTPClient http;
-    http.setTimeout(3000);
+    http.setTimeout(10000);  // 10s Timeout
+    http.setReuse(true);
     http.begin(filamanUrl + "/api/v1/devices/scale/locate");
     http.addHeader("Content-Type", "application/json");
     http.addHeader("Authorization", "Device " + filamanToken);
+    http.addHeader("Connection", "keep-alive");
     JsonDocument doc;
     if (spoolId > 0) doc["spool_id"] = spoolId;
     if (spoolTagUuid.length() > 0) doc["spool_tag_uuid"] = spoolTagUuid;
@@ -165,10 +186,12 @@ bool sendLocation(int spoolId, String spoolTagUuid, int locationId, String locat
 bool sendRfidResult(String tagUuid, int spoolId, int locationId, bool success, String errorMessage, float remainingWeight) {
     if (!checkFilamanRegistration() || WiFi.status() != WL_CONNECTED) return false;
     HTTPClient http;
-    http.setTimeout(5000);
+    http.setTimeout(10000);  // 10s Timeout
+    http.setReuse(true);
     http.begin(filamanUrl + "/api/v1/devices/rfid-result");
     http.addHeader("Content-Type", "application/json");
     http.addHeader("Authorization", "Device " + filamanToken);
+    http.addHeader("Connection", "keep-alive");
     
     JsonDocument doc;
     doc["success"] = success;
@@ -205,7 +228,7 @@ void filamanApiTask(void* pvParameters) {
         if (hasReq) {
             filamanApiState = API_TRANSMITTING;
             switch (req.type) {
-                case API_REQUEST_HEARTBEAT: sendHeartbeat(); break;
+                case API_REQUEST_HEARTBEAT: sendHeartbeatWithRetry(2); break;  // Mit Retry-Logik
                 case API_REQUEST_WEIGHT: sendWeight(req.id1, req.str1, req.val); break;
                 case API_REQUEST_LOCATE: sendLocation(req.id1, req.str1, req.id2, req.str2); break;
                 case API_REQUEST_RFID_RESULT: sendRfidResult(req.str1, req.id1, req.id2, req.bool1, req.str3, req.remainingWeight); break;

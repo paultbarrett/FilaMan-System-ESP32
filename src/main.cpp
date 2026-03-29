@@ -141,8 +141,14 @@ void loop() {
   {
     oledShowTopRow();
     oledCheckSleep(); // Put display to sleep if timeout elapsed
-    // Clean up dead websocket clients periodically instead of on connect
-    if(currentMillis % 10000 < 50) ws.cleanupClients(); 
+  }
+  
+  // WebSocket Cleanup alle 5 Sekunden (häufiger als vorher)
+  // Tote Clients können WiFi-Ressourcen blockieren
+  static unsigned long lastWsCleanup = 0;
+  if (currentMillis - lastWsCleanup >= 5000) {
+    ws.cleanupClients();
+    lastWsCleanup = currentMillis;
   }
 
   // Periodic FilaMan heartbeat

@@ -17,15 +17,15 @@ void wifiSettings() {
     WiFi.mode(WIFI_STA); 
     WiFi.setHostname("FilaMan");
     
-    // Wir lassen das Power Management (Sleep) auf dem ESP-Standard.
-    // Ein erzwungenes Ausschalten führt zu RF-Abstürzen bei vielen asynchronen HTTP-Requests.
+    // KRITISCH: Power-Save deaktivieren für stabilen Webserver-Betrieb
+    // Ohne dies geht WiFi in Modem-Sleep und verpasst Requests/Responses
+    // Dies ist die Hauptursache für Verbindungsabbrüche bei regelmäßigen API-Calls
+    esp_wifi_set_ps(WIFI_PS_NONE);
     
     // Angemessene Sendeleistung (reduziert Hitzeprobleme)
-    WiFi.setTxPower(WIFI_POWER_17dBm); // Set stable transmit power (default is 19.5 which gets hot)
-  
-    // Wir überlassen die Protokoll-Aushandlung (b/g/n) dem Treiber. Harte Vorgaben crashen unter Last.
+    WiFi.setTxPower(WIFI_POWER_17dBm);
     
-    // Aktiviere WiFi-Roaming für bessere Stabilität
+    // Aktiviere WiFi-Roaming für bessere Stabilität bei schwachem Signal
     esp_wifi_set_rssi_threshold(-80);
 }
 
@@ -76,10 +76,13 @@ void checkWiFiConnection() {
   if (WiFi.status() != WL_CONNECTED) 
   {
     if (wifiOn) {
-        Serial.println("WiFi connection lost. LwIP is auto-reconnecting...");
+        Serial.println("WiFi connection lost. Attempting active reconnect...");
         wifiOn = false;
         oledShowTopRow();
         oledDisplayText(tr(STR_WIFI_RECONNECTING));
+        
+        // Aktiver Reconnect-Versuch statt nur auf LwIP auto-reconnect zu warten
+        WiFi.reconnect();
     }
     
     wifiErrorCounter++;
@@ -95,10 +98,13 @@ void checkWiFiConnection() {
   else
   {
     if (!wifiOn) {
-        Serial.println("WiFi reconnected.");
+        Serial.println("WiFi reconnected successfully.");
         wifiErrorCounter = 0;
         wifiOn = true;
         oledShowTopRow();
+        
+        // Power-Save erneut deaktivieren nach Reconnect (wird manchmal zurückgesetzt)
+        esp_wifi_set_ps(WIFI_PS_NONE);
     } else {
         // Reset error counter if we are connected (just to be safe)
         wifiErrorCounter = 0;

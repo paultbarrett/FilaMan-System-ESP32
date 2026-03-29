@@ -16,6 +16,7 @@ static int currentUpdateCommand = 0;
 static size_t updateTotalSize = 0;
 static size_t updateWritten = 0;
 static bool isSpiffsUpdate = false;
+static size_t lastYieldAt = 0;  // Für WiFi-Yield während großer Uploads
 
 /**
  * Compares two version strings and determines if version1 is less than version2
@@ -64,10 +65,17 @@ void espRestart() {
 
 void sendUpdateProgress(int progress, const char* status = nullptr, const char* message = nullptr) {
     static int lastSentProgress = -1;
+    static unsigned long lastSendTime = 0;
     
-    // Verhindere zu häufige Updates
+    unsigned long now = millis();
+    
+    // Verhindere zu häufige Updates - mindestens 500ms zwischen Progress-Updates
+    // Dies reduziert WebSocket-Traffic während des Uploads erheblich
     if (progress == lastSentProgress && !status && !message) {
         return;
+    }
+    if (now - lastSendTime < 500 && progress < 100 && !status) {
+        return;  // Throttle normale Progress-Updates
     }
     
     String progressMsg = "{\"type\":\"updateProgress\",\"progress\":" + String(progress);
@@ -79,23 +87,13 @@ void sendUpdateProgress(int progress, const char* status = nullptr, const char* 
     }
     progressMsg += "}";
     
-    if (progress >= 100) {
-        // Sende die Nachricht nur einmal für den Abschluss
-        ws.textAll("{\"type\":\"updateProgress\",\"progress\":100,\"status\":\"success\",\"message\":\"Update successful! Restarting device...\"}");
-        delay(50);
-    }
-
-    // Sende die Nachricht mehrmals mit Verzögerung für wichtige Updates
-    if (status || abs(progress - lastSentProgress) >= 10 || progress == 100) {
-        for (int i = 0; i < 2; i++) {
-            ws.textAll(progressMsg);
-            delay(100);  // Längerer Delay zwischen Nachrichten
-        }
-    } else {
-        ws.textAll(progressMsg);
-        delay(50);
-    }
+    // Sende Progress-Update (nur einmal, nicht mehrfach)
+    ws.textAll(progressMsg);
     
+    // Yield für WiFi-Stack nach jedem WebSocket-Send
+    vTaskDelay(pdMS_TO_TICKS(10));
+    
+    lastSendTime = now;
     lastSentProgress = progress;
 }
 
@@ -132,6 +130,7 @@ void handleUpdate(AsyncWebServer &server) {
         if (!index) {
             updateTotalSize = request->contentLength();
             updateWritten = 0;
+            lastYieldAt = 0;  // Reset yield counter
             isSpiffsUpdate = (filename.indexOf("website") > -1);
             
             if (isSpiffsUpdate) {
@@ -147,14 +146,14 @@ void handleUpdate(AsyncWebServer &server) {
                     return;
                 }
                 sendUpdateProgress(5, "starting", "Starting SPIFFS update...");
-                vTaskDelay(pdMS_TO_TICKS(200));
+                vTaskDelay(pdMS_TO_TICKS(100));
             } else {
                 if (!Update.begin(updateTotalSize)) {
                     request->send(400, "application/json", "{\"success\":false,\"message\":\"Update initialization failed\"}");
                     return;
                 }
                 sendUpdateProgress(0, "starting", "Starting firmware update...");
-                vTaskDelay(pdMS_TO_TICKS(200));
+                vTaskDelay(pdMS_TO_TICKS(100));
             }
         }
 
@@ -165,22 +164,30 @@ void handleUpdate(AsyncWebServer &server) {
             }
             
             updateWritten += len;
+            
+            // KRITISCH: Yield alle 32KB für WiFi-Stack bei großen Uploads (1.5-2MB)
+            // Ohne dies kann der WiFi-Stack blockieren und der Upload hängen bleiben
+            if (updateWritten - lastYieldAt >= 32768) {
+                vTaskDelay(pdMS_TO_TICKS(5));  // Kurze Pause für WiFi-Stack
+                lastYieldAt = updateWritten;
+            }
+            
             int currentProgress;
             
             // Berechne den Fortschritt basierend auf dem Update-Typ
             if (isSpiffsUpdate) {
-                // SPIFFS: 5-75% für Upload
-                currentProgress = 6 + (updateWritten * 100) / updateTotalSize;
+                // SPIFFS: 5-100% für Upload
+                currentProgress = 5 + (updateWritten * 95) / updateTotalSize;
             } else {
                 // Firmware: 0-100% für Upload
-                currentProgress = 1 + (updateWritten * 100) / updateTotalSize;
+                currentProgress = (updateWritten * 100) / updateTotalSize;
             }
             
             static int lastProgress = -1;
-            if (currentProgress != lastProgress && (currentProgress % 10 == 0 || final)) {
+            // Nur alle 5% Progress-Updates senden (reduziert WebSocket-Traffic)
+            if (currentProgress != lastProgress && (currentProgress % 5 == 0 || final)) {
                 sendUpdateProgress(currentProgress, "uploading");
                 oledShowProgressBar(currentProgress, 100, tr(STR_UPDATE), tr(STR_DOWNLOAD));
-                vTaskDelay(pdMS_TO_TICKS(50));
                 lastProgress = currentProgress;
             }
         }

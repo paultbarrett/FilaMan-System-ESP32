@@ -57,10 +57,20 @@ String readFile(const char* filename) {
         Serial.println(filename);
         return "";
     }
-    String content = "";
+    
+    // Effizient: Speicher vorab allokieren und in Blöcken lesen
+    // Alte Implementierung war O(n²) wegen Byte-für-Byte String-Konkatenation
+    size_t fileSize = file.size();
+    String content;
+    content.reserve(fileSize + 1);  // Speicher vorab allokieren
+    
+    // Lese in 512-Byte Blöcken statt Byte für Byte
+    char buffer[512];
     while (file.available()) {
-        content += (char)file.read();
+        size_t bytesRead = file.readBytes(buffer, sizeof(buffer));
+        content.concat(buffer, bytesRead);
     }
+    
     file.close();
     return content;
 }
